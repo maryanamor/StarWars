@@ -1,3 +1,5 @@
+import "../styles/styles.css";
+import "../index.html";
 
 
 document.addEventListener("DOMContentLoaded", onDOMLoaded);
