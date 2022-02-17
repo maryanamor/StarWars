@@ -1,7 +1,6 @@
 import "../styles/styles.css";
 import "../index.html";
 import {fetchAllData, fetchPlanets} from './fetchData'
-import {residentList, residentWithSpeciesList} from "./getListData";
 import { Pagination } from "./pagination";
 
 const table = document.querySelector('tbody');
