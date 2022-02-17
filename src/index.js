@@ -67,7 +67,7 @@ async function getPlanets(page) {
             return residentsWithSpecies;
         }
     } catch (error) {
-        return error;
+        console.error(error);
     }
 }
 
