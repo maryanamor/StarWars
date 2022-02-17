@@ -1,71 +1,77 @@
 import "../styles/styles.css";
 import "../index.html";
+import {fetchAllData, fetchPlanets} from './fetchData'
+import {residentList, residentWithSpeciesList} from "./getListData";
+import { Pagination } from "./pagination";
 
 const table = document.querySelector('tbody');
+const loader = document.querySelector('.loader');
 const pagination_elements = document.querySelector('.pagination');
 
 document.addEventListener("DOMContentLoaded", onDOMLoaded);
 
-let current_page = 1;
-let count;
-let pageListLength;
 
 function onDOMLoaded() {
-    getResidentsList();
+    getResidentsList(1);
 }
 
-const fetchPlanets = async (page) => {
-    try {
-        const res = await fetch(`https://swapi.dev/api/planets/?${page}=&page=${page}`);
-        return res.json();
-    } catch (error) {
-        return error
-    }
-};
+const pagination = new Pagination();
 
-const fetchAllData = async (url) => {
-    try {
-        return await fetch(url).then((res) => res.json());
-    } catch (error) {
-        return error
-    }
-};
-
-async function getPlanets(page = 1){
+async function getPlanets(page) {
     try {
         const planets = await fetchPlanets(page);
-        current_page = page;
-        count = planets.count;
-        pageListLength = planets.results.length;
+        pagination.setPagination(page, planets.results.length, planets.count)
         if (planets.results.length) {
-            const residentList = (await Promise.all(planets.results?.map((planet) => {
-                return Promise.all(planet.residents?.map(async (resident, key) => {
-                    const getResidentInfo = await fetchAllData(resident, planet.name, 'Residents');
-                    return {
-                        index: key+1,
-                        planet: planet.name,
-                        residentName: getResidentInfo.name,
-                        species: getResidentInfo.species
-                    }
-                }))
-            }))).flatMap(item => item)
-            return (await Promise.all(residentList.map(async resident => {
-                if (resident.species.length) {
-                    return await Promise.all(resident.species.map(async item => {
-                        const getSpecies = await fetchAllData(item, resident.residentName, 'Species');
-                        resident.species = getSpecies.name
-                        return resident
-                    }))
-                } else {
-                    resident.species = 'Human'
-                    return resident
-                }
-            }))).flatMap(item => item)
+            const residentList = (
+                await Promise.all(
+                    planets.results?.map((planet) => {
+                        return Promise.all(
+                            planet.residents?.map(async (resident, key) => {
+                                const getResidentInfo = await fetchAllData(
+                                    resident,
+                                    planet.name,
+                                    "Residents"
+                                );
+                                return {
+                                    index: key + 1,
+                                    planet: planet.name,
+                                    residentName: getResidentInfo.name,
+                                    species: getResidentInfo.species
+                                };
+                            })
+                        );
+                    })
+                )
+            ).flatMap((item) => item);
+            const residentsWithSpecies = (
+                await Promise.all(
+                    residentList.map(async (resident) => {
+                        if (resident.species.length) {
+                            return await Promise.all(
+                                resident.species.map(async (item) => {
+                                    const getSpecies = await fetchAllData(
+                                        item,
+                                        resident.residentName,
+                                        "Species"
+                                    );
+                                    resident.species = getSpecies.name;
+                                    return resident;
+                                })
+                            );
+                        } else {
+                            resident.species = "Human";
+                            return resident;
+                        }
+                    })
+                )
+            ).flatMap((item) => item);
+            return residentsWithSpecies;
         }
     } catch (error) {
-        return error
+        return error;
     }
 }
+
 // Draw table
 function generateTable(table, data) {
     table.innerHTML = '';
@@ -77,21 +83,24 @@ function generateTable(table, data) {
             cell.appendChild(text);
         }
     }
-    setUpPagination(count, pageListLength);
+    setUpPagination(pagination.total, pagination.count);
 }
 
 const getResidentsList = async (id) => {
+    loader.removeAttribute('hidden');
+    table.style.opacity = '0.4';
     return await getPlanets(id).then((res) => {
-        console.log('table data', res);
+        loader.setAttribute('hidden', '');
+        table.style.opacity = '1';
         generateTable(table, res)
     });
 }
 
-function paginationButton(page) {
+export function paginationButton(page) {
     let button = document.createElement("button");
     button.classList.add("pagination__btn");
     button.innerText = page;
-    if (current_page === page) {
+    if (pagination.page === page) {
         button.classList.add("pagination__btn-active");
     }
 
@@ -104,12 +113,11 @@ function paginationButton(page) {
     return button;
 }
 
-function setUpPagination(count, perPage) {
+export function setUpPagination(total, count) {
     pagination_elements.innerHTML = "";
-    let pageCount = Math.ceil(count / perPage);
+    let pageCount = Math.ceil(total / count);
     for (let i = 0; i < pageCount; i++) {
         let btn = paginationButton(i + 1);
         pagination_elements.appendChild(btn);
     }
 }
-
