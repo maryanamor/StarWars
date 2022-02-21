@@ -32,7 +32,7 @@ async function getPlanets(page) {
                                     "Residents"
                                 );
                                 return {
-                                    index: key + 1,
+                                    key,
                                     planet: planet.name,
                                     residentName: getResidentInfo.name,
                                     species: getResidentInfo.species
@@ -44,7 +44,7 @@ async function getPlanets(page) {
             ).flatMap((item) => item);
             const residentsWithSpecies = (
                 await Promise.all(
-                    residentList.map(async (resident) => {
+                    residentList.map(async (resident, key= 1) => {
                         if (resident.species.length) {
                             return await Promise.all(
                                 resident.species.map(async (item) => {
@@ -54,11 +54,13 @@ async function getPlanets(page) {
                                         "Species"
                                     );
                                     resident.species = getSpecies.name;
+                                    resident.key = key + 1;
                                     return resident;
                                 })
                             );
                         } else {
                             resident.species = "Human";
+                            resident.key = key + 1;
                             return resident;
                         }
                     })
